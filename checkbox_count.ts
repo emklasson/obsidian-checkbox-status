@@ -5,31 +5,34 @@ export const CHECKBOX_COUNT_VIEW_TYPE = "checkbox-status-view";
 
 export default class CheckboxCount {
 	private plugin: CheckboxStatusPlugin;
+	public checked: number = 0;
+	public total: number = 0;
+	private statusBarItem: HTMLElement;
+	private statusBarCountItem: HTMLElement;
 
 	constructor(plugin: CheckboxStatusPlugin) {
 		this.plugin = plugin;
+		this.statusBarItem = this.plugin.addStatusBarItem();
+		this.statusBarItem.addClass("checkbox-statusbar-item");
+		this.statusBarCountItem = this.statusBarItem.createEl('span');
+		setIcon(this.statusBarItem.createEl('span', { cls: "checkbox-statusbar-icon" }), "list-checks");
 	}
 
 	onload() {
-		const statusBarItem = this.plugin.addStatusBarItem();
-		statusBarItem.addClass("checkbox-statusbar-item");
-		const countItem = statusBarItem.createEl('span');
-		setIcon(statusBarItem.createEl('span', { cls: "checkbox-statusbar-icon" }), "list-checks");
-
 		this.plugin.registerView(
 			CHECKBOX_COUNT_VIEW_TYPE,
-			(leaf) => new CheckboxCountView(leaf, this.plugin, countItem)
+			(leaf) => new CheckboxCountView(leaf, this)
 		);
 
 		this.plugin.registerEvent(
 			this.plugin.app.workspace.on("file-open", () => {
-				this.updateView();
+				this.update();
 			})
 		);
 
 		this.plugin.app.metadataCache.on("changed", (file) => {
 			if (file === this.plugin.app.workspace.getActiveFile()) {
-				this.updateView();
+				this.update();
 			}
 		});
 
@@ -58,21 +61,65 @@ export default class CheckboxCount {
 		}
 	}
 
-	updateView() {
+	// Returns true on success; otherwise, false.
+	private updateCount(): boolean {
+		this.total = 0;
+		this.checked = 0;
+
+		const file = this.plugin.app.workspace.getActiveFile();
+		if (!file || file.extension !== "md") {
+			return false;
+		}
+
+		const cache = this.plugin.app.metadataCache.getFileCache(file);
+
+		const checkboxes = cache?.listItems?.filter((item) => item.task !== undefined);
+		if (checkboxes) {
+			for (const cb of checkboxes) {
+				if (cb.task === " ") {
+					this.total++;
+				} else if (this.plugin.settings.countAnyCheckSymbol
+						|| cb.task === "x" || cb.task === "X") {
+					this.checked++;
+					this.total++;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	private updateView() {
 		const leaves = this.plugin.app.workspace.getLeavesOfType(CHECKBOX_COUNT_VIEW_TYPE);
 		const view = leaves.length > 0 ? leaves[0].view as CheckboxCountView : null;
 		view?.update();
 	}
+
+	private updateStatusBar() {
+		this.statusBarCountItem.setText(`${this.checked} / ${this.total}`);
+		if (this.plugin.settings.showInStatusBar) {
+			this.statusBarCountItem.parentElement?.show();
+		} else {
+			this.statusBarCountItem.parentElement?.hide();
+		}
+	}
+
+	update() {
+		if (!this.updateCount()) {
+			this.statusBarCountItem.parentElement?.hide();
+		} else {
+			this.updateView();
+			this.updateStatusBar();
+		}
+	}
 }
 
 class CheckboxCountView extends ItemView {
-	private plugin: CheckboxStatusPlugin;
-	private statusBarCountItem: HTMLElement;
+	private checkboxCount: CheckboxCount;
 
-	constructor(leaf: WorkspaceLeaf, plugin: CheckboxStatusPlugin, statusBarCountItem: HTMLElement) {
+	constructor(leaf: WorkspaceLeaf, checkboxCount: CheckboxCount) {
 		super(leaf);
-		this.plugin = plugin;
-		this.statusBarCountItem = statusBarCountItem;
+		this.checkboxCount = checkboxCount;
 	}
 
 	getViewType(): string {
@@ -95,33 +142,11 @@ class CheckboxCountView extends ItemView {
 	}
 
 	update() {
-		const settings = this.plugin.settings;
 		const container = this.containerEl;
 		container.empty();
 
-		const file = this.app.workspace.getActiveFile();
-
-		if (!file || file.extension !== "md") {
-			this.showNoCheckboxes(container);
-			this.statusBarCountItem.parentElement?.hide();
-			return;
-		}
-
-		const cache = this.app.metadataCache.getFileCache(file);
-		let total = 0;
-		let checked = 0;
-
-		const checkboxes = cache?.listItems?.filter((item) => item.task !== undefined);
-		if (checkboxes) {
-			for (const cb of checkboxes) {
-				if (cb.task === " ") {
-					total++;
-				} else if (settings.countAnyCheckSymbol || cb.task === "x" || cb.task === "X") {
-					checked++;
-					total++;
-				}
-			}
-		}
+		const total = this.checkboxCount.total;
+		const checked = this.checkboxCount.checked;
 
 		if (total > 0) {
 			const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
@@ -147,21 +172,10 @@ class CheckboxCountView extends ItemView {
 				attr: { style: `width: ${pct}%` },
 			});
 		} else {
-			this.showNoCheckboxes(container);
+			container.createEl("p", {
+				text: "No checkboxes found.",
+				cls: "checkbox-empty",
+			});
 		}
-
-		this.statusBarCountItem.setText(`${checked} / ${total}`);
-		if (settings.showInStatusBar) {
-			this.statusBarCountItem.parentElement?.show();
-		} else {
-			this.statusBarCountItem.parentElement?.hide();
-		}
-	}
-
-	private showNoCheckboxes(container: HTMLElement) {
-		container.createEl("p", {
-			text: "No checkboxes found.",
-			cls: "checkbox-empty",
-		});
 	}
 }

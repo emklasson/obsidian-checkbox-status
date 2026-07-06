@@ -61,7 +61,7 @@ class SettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.showInStatusBar = value;
                         await this.plugin.saveSettings();
-                        this.plugin.checkboxCount.updateView();
+                        this.plugin.checkboxCount.update();
                     });
             });
 
@@ -73,7 +73,7 @@ class SettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.countAnyCheckSymbol = value;
                         await this.plugin.saveSettings();
-                        this.plugin.checkboxCount.updateView();
+                        this.plugin.checkboxCount.update();
                     });
             });
     }
