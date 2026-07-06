@@ -15,8 +15,8 @@ const DEFAULT_SETTINGS: PluginSettings = {
 }
 
 export default class CheckboxStatusPlugin extends Plugin {
-    settings: PluginSettings;
-    private checkboxCount: CheckboxCount;
+    public settings: PluginSettings;
+    public checkboxCount: CheckboxCount;
 
     constructor(app: App, manifest: PluginManifest) {
         super(app, manifest);
@@ -61,6 +61,7 @@ class SettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.showInStatusBar = value;
                         await this.plugin.saveSettings();
+                        this.plugin.checkboxCount.updateView();
                     });
             });
 
@@ -72,6 +73,7 @@ class SettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.countAnyCheckSymbol = value;
                         await this.plugin.saveSettings();
+                        this.plugin.checkboxCount.updateView();
                     });
             });
     }
