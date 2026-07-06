@@ -41,6 +41,8 @@ export default class CheckboxCount {
             name: "Toggle checkbox status view",
             callback: () => this.toggleView()
         });
+
+		this.update();
 	}
 
 	async toggleView() {
