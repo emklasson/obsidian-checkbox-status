@@ -12,6 +12,7 @@ export default class CheckboxCount {
 
 	onload() {
 		const statusBarItem = this.plugin.addStatusBarItem();
+		statusBarItem.addClass("checkbox-statusbar-item");
 		const countItem = statusBarItem.createEl('span');
 		setIcon(statusBarItem.createEl('span', { cls: "checkbox-statusbar-icon" }), "list-checks");
 
