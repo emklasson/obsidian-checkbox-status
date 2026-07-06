@@ -3,12 +3,16 @@ import { App, Plugin, PluginManifest, PluginSettingTab, Setting } from "obsidian
 
 interface PluginSettings {
     showInStatusBar: boolean;
+    showProgressBar: boolean;
     countAnyCheckSymbol: boolean;
 }
 
 const DEFAULT_SETTINGS: PluginSettings = {
     // Show a status bar item with the count of checked/total checkboxes?
     showInStatusBar: true,
+
+    // Show a progress bar filled to <checked / total>.
+    showProgressBar: true,
 
     // Count any non-empty checkbox as checked or only "x"/"X"?
     countAnyCheckSymbol: false
@@ -60,6 +64,18 @@ class SettingTab extends PluginSettingTab {
                 toggle.setValue(this.plugin.settings.showInStatusBar)
                     .onChange(async (value) => {
                         this.plugin.settings.showInStatusBar = value;
+                        await this.plugin.saveSettings();
+                        this.plugin.checkboxCount.update();
+                    });
+            });
+
+        new Setting(containerEl)
+            .setName('Show progress bar in view')
+            .setDesc('Show a progress bar filled to <checked / total>.')
+            .addToggle(toggle => {
+                toggle.setValue(this.plugin.settings.showProgressBar)
+                    .onChange(async (value) => {
+                        this.plugin.settings.showProgressBar = value;
                         await this.plugin.saveSettings();
                         this.plugin.checkboxCount.update();
                     });

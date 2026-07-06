@@ -4,7 +4,7 @@ import { ItemView, setIcon, WorkspaceLeaf } from "obsidian";
 export const CHECKBOX_COUNT_VIEW_TYPE = "checkbox-status-view";
 
 export default class CheckboxCount {
-	private plugin: CheckboxStatusPlugin;
+	public plugin: CheckboxStatusPlugin;
 	public checked: number = 0;
 	public total: number = 0;
 	private statusBarItem: HTMLElement;
@@ -166,13 +166,15 @@ class CheckboxCountView extends ItemView {
 				attr: { checked: "", disabled: "", "aria-hidden": "true" },
 			});
 
-			const bar = progress.createEl("div", {
-				cls: "checkbox-progress-bar",
-			});
-			bar.createEl("div", {
-				cls: "checkbox-progress-fill",
-				attr: { style: `width: ${pct}%` },
-			});
+			if (this.checkboxCount.plugin.settings.showProgressBar) {
+				const bar = progress.createEl("div", {
+					cls: "checkbox-progress-bar",
+				});
+				bar.createEl("div", {
+					cls: "checkbox-progress-fill",
+					attr: { style: `width: ${pct}%` },
+				});
+			}
 		} else {
 			container.createEl("p", {
 				text: "No checkboxes found.",
