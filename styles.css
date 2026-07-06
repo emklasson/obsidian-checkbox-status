@@ -1,0 +1,40 @@
+.checkbox-progress {
+	padding: var(--size-4-4) var(--size-4-4);
+}
+
+.checkbox-progress-label {
+	font-size: var(--font-smallest);
+	color: var(--text-muted);
+	margin-bottom: var(--size-2-3);
+
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    justify-content: center;
+}
+
+.checkbox-no-hover {
+    pointer-events: none;
+}
+
+.checkbox-progress-bar {
+	height: 8px;
+	background: var(--background-modifier-border);
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.checkbox-progress-fill {
+	height: 100%;
+	background: var(--text-accent);
+}
+
+.checkbox-empty {
+	text-align: center;
+	color: var(--text-faint);
+	font-size: var(--font-smallest);
+}
+
+.checkbox-statusbar-icon {
+	margin-left: var(--size-4-1);
+}
