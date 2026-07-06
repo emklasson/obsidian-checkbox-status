@@ -1,17 +1,12 @@
-import { ItemView, Plugin, setIcon, WorkspaceLeaf } from "obsidian";
+import CheckboxStatusPlugin from "main";
+import { ItemView, setIcon, WorkspaceLeaf } from "obsidian";
 
 export const CHECKBOX_COUNT_VIEW_TYPE = "checkbox-status-view";
 
-// Count any non-empty checkbox as checked or only "x"/"X"?
-const countAnyCheckSymbol = false;
-
-// Show a status bar item with the count of checked/total checkboxes?
-const showStatusBarCount = true;
-
 export default class CheckboxCount {
-	private plugin: Plugin;
+	private plugin: CheckboxStatusPlugin;
 
-	constructor(plugin: Plugin) {
+	constructor(plugin: CheckboxStatusPlugin) {
 		this.plugin = plugin;
 	}
 
@@ -22,7 +17,7 @@ export default class CheckboxCount {
 
 		this.plugin.registerView(
 			CHECKBOX_COUNT_VIEW_TYPE,
-			(leaf) => new CheckboxCountView(leaf, countItem)
+			(leaf) => new CheckboxCountView(leaf, this.plugin, countItem)
 		);
 
 		this.plugin.registerEvent(
@@ -70,10 +65,12 @@ export default class CheckboxCount {
 }
 
 class CheckboxCountView extends ItemView {
+	private plugin: CheckboxStatusPlugin;
 	private statusBarCountItem: HTMLElement;
 
-	constructor(leaf: WorkspaceLeaf, statusBarCountItem: HTMLElement) {
+	constructor(leaf: WorkspaceLeaf, plugin: CheckboxStatusPlugin, statusBarCountItem: HTMLElement) {
 		super(leaf);
+		this.plugin = plugin;
 		this.statusBarCountItem = statusBarCountItem;
 	}
 
@@ -97,6 +94,7 @@ class CheckboxCountView extends ItemView {
 	}
 
 	update() {
+		const settings = this.plugin.settings;
 		const container = this.containerEl;
 		container.empty();
 
@@ -117,7 +115,7 @@ class CheckboxCountView extends ItemView {
 			for (const cb of checkboxes) {
 				if (cb.task === " ") {
 					total++;
-				} else if (countAnyCheckSymbol || cb.task === "x" || cb.task === "X") {
+				} else if (settings.countAnyCheckSymbol || cb.task === "x" || cb.task === "X") {
 					checked++;
 					total++;
 				}
@@ -152,7 +150,7 @@ class CheckboxCountView extends ItemView {
 		}
 
 		this.statusBarCountItem.setText(`${checked} / ${total}`);
-		if (showStatusBarCount) {
+		if (settings.showInStatusBar) {
 			this.statusBarCountItem.parentElement?.show();
 		} else {
 			this.statusBarCountItem.parentElement?.hide();

@@ -2,11 +2,16 @@ import CheckboxCount from "checkbox_count";
 import { App, Plugin, PluginManifest, PluginSettingTab, Setting } from "obsidian";
 
 interface PluginSettings {
-    saveConfirmationAll: boolean;
+    showInStatusBar: boolean;
+    countAnyCheckSymbol: boolean;
 }
 
 const DEFAULT_SETTINGS: PluginSettings = {
-    saveConfirmationAll: true,
+    // Show a status bar item with the count of checked/total checkboxes?
+    showInStatusBar: true,
+
+    // Count any non-empty checkbox as checked or only "x"/"X"?
+    countAnyCheckSymbol: false
 }
 
 export default class CheckboxStatusPlugin extends Plugin {
@@ -49,12 +54,23 @@ class SettingTab extends PluginSettingTab {
         containerEl.empty();
 
         new Setting(containerEl)
-            .setName('All files')
-            .setDesc('Ask for confirmation when saving all files\' times.')
+            .setName('Show in status bar')
+            .setDesc('Show checkbox count in the status bar.')
             .addToggle(toggle => {
-                toggle.setValue(this.plugin.settings.saveConfirmationAll)
+                toggle.setValue(this.plugin.settings.showInStatusBar)
                     .onChange(async (value) => {
-                        this.plugin.settings.saveConfirmationAll = value;
+                        this.plugin.settings.showInStatusBar = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
+
+        new Setting(containerEl)
+            .setName('Count any non-empty checkbox as checked')
+            .setDesc('Only counts [x], [X], and [ ] checkboxes if disabled.')
+            .addToggle(toggle => {
+                toggle.setValue(this.plugin.settings.countAnyCheckSymbol)
+                    .onChange(async (value) => {
+                        this.plugin.settings.countAnyCheckSymbol = value;
                         await this.plugin.saveSettings();
                     });
             });
