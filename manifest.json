@@ -3,7 +3,7 @@
 	"name": "Checkbox Status",
 	"version": "1.0.0",
 	"minAppVersion": "1.4.4",
-	"description": "Show checked and total checkboxes in the status bar and/or a separate view.",
+	"description": "Show checked and total checkbox counts in the status bar and/or a separate view.",
 	"author": "Mikael Klasson",
 	"authorUrl": "https://github.com/emklasson",
 	"isDesktopOnly": false
