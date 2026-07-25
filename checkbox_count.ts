@@ -78,17 +78,17 @@ export default class CheckboxCount {
 		}
 
 		const cache = this.plugin.app.metadataCache.getFileCache(file);
+		for (const cb of cache?.listItems ?? []) {
+			if (cb.task === undefined) {
+				continue;
+			}
 
-		const checkboxes = cache?.listItems?.filter((item) => item.task !== undefined);
-		if (checkboxes) {
-			for (const cb of checkboxes) {
-				if (cb.task === " ") {
-					this.total++;
-				} else if (this.plugin.settings.countAnyCheckSymbol
-						|| cb.task === "x" || cb.task === "X") {
-					this.checked++;
-					this.total++;
-				}
+			if (cb.task === " ") {
+				this.total++;
+			} else if (this.plugin.settings.countAnyCheckSymbol
+					|| cb.task === "x" || cb.task === "X") {
+				this.checked++;
+				this.total++;
 			}
 		}
 
