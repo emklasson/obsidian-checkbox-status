@@ -1,5 +1,5 @@
 import CheckboxStatusPlugin from "main";
-import { ItemView, setIcon, WorkspaceLeaf } from "obsidian";
+import { debounce, ItemView, setIcon, WorkspaceLeaf } from "obsidian";
 
 export const CHECKBOX_COUNT_VIEW_TYPE = "checkbox-status-view";
 
@@ -9,6 +9,7 @@ export default class CheckboxCount {
 	public total: number = 0;
 	private statusBarItem: HTMLElement;
 	private statusBarCountItem: HTMLElement;
+	private debouncedUpdate = debounce(() => this.update(), 150);
 
 	constructor(plugin: CheckboxStatusPlugin) {
 		this.plugin = plugin;
@@ -26,6 +27,7 @@ export default class CheckboxCount {
 
 		this.plugin.registerEvent(
 			this.plugin.app.workspace.on("file-open", () => {
+				this.debouncedUpdate.cancel();
 				this.update();
 			})
 		);
@@ -33,7 +35,7 @@ export default class CheckboxCount {
 		this.plugin.registerEvent(
 			this.plugin.app.metadataCache.on("changed", (file) => {
 				if (file === this.plugin.app.workspace.getActiveFile()) {
-					this.update();
+					this.debouncedUpdate();
 				}
 			})
 		);
