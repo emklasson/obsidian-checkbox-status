@@ -73,7 +73,7 @@ export default class CheckboxCount {
 		this.checked = 0;
 
 		const file = this.plugin.app.workspace.getActiveFile();
-		if (!file || file.extension !== "md") {
+		if (!file || !["md", "markdown"].includes(file.extension.toLowerCase())) {
 			return false;
 		}
 
