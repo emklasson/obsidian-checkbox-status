@@ -19,7 +19,7 @@ const DEFAULT_SETTINGS: PluginSettings = {
 }
 
 export default class CheckboxStatusPlugin extends Plugin {
-    public settings: PluginSettings;
+    public settings!: PluginSettings;
     public checkboxCount: CheckboxCount;
 
     constructor(app: App, manifest: PluginManifest) {
