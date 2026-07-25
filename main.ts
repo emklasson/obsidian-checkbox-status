@@ -52,7 +52,7 @@ class SettingTab extends PluginSettingTab {
         this.plugin = plugin;
     }
 
-    display(): void {
+    display() {
         const {containerEl} = this;
 
         containerEl.empty();
