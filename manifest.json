@@ -1,7 +1,7 @@
 {
 	"id": "checkbox-status",
 	"name": "Checkbox Status",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "1.7.2",
 	"description": "Show checked and total checkbox counts in the status bar and/or a separate view.",
 	"author": "Mikael Klasson",
