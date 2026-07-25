@@ -93,8 +93,11 @@ export default class CheckboxCount {
 
 	private updateView() {
 		const leaves = this.plugin.app.workspace.getLeavesOfType(CHECKBOX_COUNT_VIEW_TYPE);
-		const view = leaves.length > 0 ? leaves[0].view as CheckboxCountView : null;
-		view?.update();
+		for (const leaf of leaves) {
+			if (leaf.view instanceof CheckboxCountView && leaf.view.containerEl?.isConnected) {
+				leaf.view.update();
+			}
+		}
 	}
 
 	private updateStatusBar() {
