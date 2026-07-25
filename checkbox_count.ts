@@ -30,11 +30,13 @@ export default class CheckboxCount {
 			})
 		);
 
-		this.plugin.app.metadataCache.on("changed", (file) => {
-			if (file === this.plugin.app.workspace.getActiveFile()) {
-				this.update();
-			}
-		});
+		this.plugin.registerEvent(
+			this.plugin.app.metadataCache.on("changed", (file) => {
+				if (file === this.plugin.app.workspace.getActiveFile()) {
+					this.update();
+				}
+			})
+		);
 
 		this.plugin.addCommand({
             id: "toggle-checkbox-status-view",
