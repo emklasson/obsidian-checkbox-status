@@ -52,7 +52,7 @@ export default class CheckboxCount {
 	async toggleView() {
 		const leaves = this.plugin.app.workspace.getLeavesOfType(CHECKBOX_COUNT_VIEW_TYPE);
 		if (leaves.length > 0) {
-			leaves[0].detach();
+			leaves.forEach(leaf => leaf.detach());
 			return;
 		}
 
