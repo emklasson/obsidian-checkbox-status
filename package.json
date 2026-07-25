@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-checkbox-status",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "Show checked and total checkbox counts in the status bar and/or a separate view.",
 	"main": "main.js",
 	"scripts": {
