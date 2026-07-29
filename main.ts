@@ -1,5 +1,5 @@
 import CheckboxCount from "checkbox_count";
-import { App, Plugin, PluginManifest, PluginSettingTab, Setting } from "obsidian";
+import { App, Editor, Plugin, PluginManifest, PluginSettingTab, Setting } from "obsidian";
 
 interface PluginSettings {
     showInStatusBar: boolean;
@@ -32,6 +32,12 @@ export default class CheckboxStatusPlugin extends Plugin {
 
         this.checkboxCount.onload();
 
+        this.addCommand({
+            id: 'cycle-checkbox-state',
+            name: 'Cycle checkbox state',
+            editorCallback: (editor) => this.cycleCheckboxState(editor)
+        });
+
         this.addSettingTab(new SettingTab(this.app, this));
     }
 
@@ -41,6 +47,34 @@ export default class CheckboxStatusPlugin extends Plugin {
 
     async saveSettings() {
         await this.saveData(this.settings);
+    }
+
+    private cycleCheckboxState(editor: Editor) {
+        const CHECKBOX_CYCLE = ['', '[ ] ', '[x] ', '[-] '];
+
+        const cursor = editor.getCursor();
+        const line = editor.getLine(cursor.line);
+        const match = line.match(/^(\s*)([-*+]) (\[.?\] )?/);
+        if (!match) {
+            return;
+        }
+
+        const [, indent, bullet, checkbox] = match;
+        const startCh = indent.length + bullet.length + 1;
+        const endCh = startCh + (checkbox?.length || 0);
+
+        const index = CHECKBOX_CYCLE.indexOf(checkbox ?? '');
+        if (index == -1) {
+            return;
+        }
+
+        const replacement = CHECKBOX_CYCLE[(index + 1) % CHECKBOX_CYCLE.length];
+        editor.replaceRange(replacement, { line: cursor.line, ch: startCh }, { line: cursor.line, ch: endCh });
+
+        // Fix cursor position if we added a new checkbox at the cursor.
+        if (!checkbox && cursor.ch === startCh) {
+            editor.setCursor({ line: cursor.line, ch: cursor.ch + replacement.length });
+        }
     }
 }
 
