@@ -5,6 +5,7 @@ interface PluginSettings {
     showInStatusBar: boolean;
     showProgressBar: boolean;
     countAnyCheckSymbol: boolean;
+    checkboxCycle: string;
 }
 
 const DEFAULT_SETTINGS: PluginSettings = {
@@ -15,7 +16,10 @@ const DEFAULT_SETTINGS: PluginSettings = {
     showProgressBar: true,
 
     // Count any non-empty checkbox as checked or only "x"/"X"?
-    countAnyCheckSymbol: false
+    countAnyCheckSymbol: false,
+
+    // Items in checkbox cycle.
+    checkboxCycle: ", ,x,-"
 }
 
 export default class CheckboxStatusPlugin extends Plugin {
@@ -50,7 +54,8 @@ export default class CheckboxStatusPlugin extends Plugin {
     }
 
     private cycleCheckboxState(editor: Editor) {
-        const CHECKBOX_CYCLE = ['', '[ ] ', '[x] ', '[-] '];
+        const cycle = this.settings.checkboxCycle.split(',')
+            .map(x => x ? `[${x}] ` : '');
 
         const cursor = editor.getCursor();
         const line = editor.getLine(cursor.line);
@@ -63,12 +68,12 @@ export default class CheckboxStatusPlugin extends Plugin {
         const startCh = indent.length + bullet.length + 1;
         const endCh = startCh + (checkbox?.length || 0);
 
-        const index = CHECKBOX_CYCLE.indexOf(checkbox ?? '');
+        const index = cycle.indexOf(checkbox ?? '');
         if (index == -1) {
             return;
         }
 
-        const replacement = CHECKBOX_CYCLE[(index + 1) % CHECKBOX_CYCLE.length];
+        const replacement = cycle[(index + 1) % cycle.length];
         editor.replaceRange(replacement, { line: cursor.line, ch: startCh }, { line: cursor.line, ch: endCh });
 
         // Fix cursor position if we added a new checkbox at the cursor.
@@ -126,5 +131,75 @@ class SettingTab extends PluginSettingTab {
                         this.plugin.checkboxCount.update();
                     });
             });
+
+        new Setting(containerEl)
+            .setName('Cycle checkbox state')
+            .setDesc("The cycle-checkbox-state command lets you cycle through custom checkbox states.")
+            .setHeading();
+
+        const desc = document.createDocumentFragment();
+        desc.createSpan({ text: 'Comma-separated checkbox states to cycle between.' });
+        desc.createEl('br');
+        desc.createSpan({ text: 'An empty item means a simple bullet.' });
+        desc.createEl('br');
+        desc.createSpan({ text: 'E.g. ", ,x,-" means bullet, unchecked, checked, canceled.' });
+
+        const statesSetting = new Setting(containerEl)
+            .setName('States in checkbox cycle')
+            .setDesc(desc)
+            .addText(text => {
+                text.setPlaceholder(', ,x,-')
+                    .setValue(this.plugin.settings.checkboxCycle)
+                    .onChange(async (value) => {
+                        const items = value.split(',');
+
+                        if (items.some(item => item.length > 1)) {
+                            text.inputEl.addClass('mklasson-setting-error');
+                            return;
+                        }
+
+                        text.inputEl.removeClass('mklasson-setting-error');
+                        this.plugin.settings.checkboxCycle = value;
+                        await this.plugin.saveSettings();
+                        updateCycleView(value);
+                    });
+            });
+
+            const label = statesSetting.infoEl.createEl("div", {
+                cls: "checkbox-cycle-setting-label",
+            });
+            updateCycleView(this.plugin.settings.checkboxCycle);
+
+            function updateCycleView(checkboxCycle: string) {
+                label.empty();
+                label.createEl("span", {
+                    cls: "checkbox-cycle-setting-label-prefix",
+                    text: "Cycle:",
+                });
+
+                const cycleItems = checkboxCycle.split(',');
+                for (const item of cycleItems) {
+                    if (item.length === 0) {
+                        label.createEl("span", {
+                            cls: ["list-bullet", "checkbox-cycle-setting-bullet"],
+                            text: "-",
+                        });
+                    } else {
+                        const attrs: Record<string, string> = {
+                            "aria-hidden": "true",
+                            "data-task": item,
+                            "disabled": "",
+                        };
+                        if (item !== " ") {
+                            attrs["checked"] = "";
+                        }
+                        label.createEl("input", {
+                            type: "checkbox",
+                            cls: ["task-list-item-checkbox", "checkbox-no-hover"],
+                            attr: attrs,
+                        });
+                    }
+                }
+            }
     }
 }

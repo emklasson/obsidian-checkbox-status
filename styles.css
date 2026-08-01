@@ -48,3 +48,21 @@
 	height: 12px;
 	transform: translateY(-2px);
 }
+
+.checkbox-cycle-setting-label-prefix {
+	margin-right: var(--size-2-3);
+}
+
+.checkbox-cycle-setting-label {
+	font-size: var(--font-smallest);
+	margin-top: var(--size-2-3);
+
+    display: flex;
+    align-items: center;
+    justify-content: left;
+	flex-wrap: wrap;
+}
+
+.checkbox-cycle-setting-bullet {
+	margin-right: var(--size-2-3);
+}
