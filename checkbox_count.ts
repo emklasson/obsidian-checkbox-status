@@ -15,8 +15,8 @@ export default class CheckboxCount {
 		this.plugin = plugin;
 		this.statusBarItem = this.plugin.addStatusBarItem();
 		this.statusBarItem.addClass("checkbox-statusbar-item");
-		this.statusBarCountItem = this.statusBarItem.createEl('span');
-		setIcon(this.statusBarItem.createEl('span', { cls: "checkbox-statusbar-icon" }), "list-checks");
+		this.statusBarCountItem = this.statusBarItem.createSpan();
+		setIcon(this.statusBarItem.createSpan({ cls: "checkbox-statusbar-icon" }), "list-checks");
 	}
 
 	onload() {
@@ -159,11 +159,11 @@ class CheckboxCountView extends ItemView {
 
 		if (total > 0) {
 			const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
-			const progress = container.createEl("div", {
+			const progress = container.createDiv({
 				cls: "checkbox-progress",
 			});
 
-			const label = progress.createEl("div", {
+			const label = progress.createDiv({
 				cls: "checkbox-progress-label",
 				text: `${checked} / ${total}`,
 			});
@@ -174,10 +174,10 @@ class CheckboxCountView extends ItemView {
 			});
 
 			if (this.checkboxCount.plugin.settings.showProgressBar) {
-				const bar = progress.createEl("div", {
+				const bar = progress.createDiv({
 					cls: "checkbox-progress-bar",
 				});
-				bar.createEl("div", {
+				bar.createDiv({
 					cls: "checkbox-progress-fill",
 					attr: { style: `width: ${pct}%` },
 				});

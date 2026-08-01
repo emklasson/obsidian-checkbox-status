@@ -165,14 +165,12 @@ class SettingTab extends PluginSettingTab {
                     });
             });
 
-            const label = statesSetting.infoEl.createEl("div", {
-                cls: "checkbox-cycle-setting-label",
-            });
+            const label = statesSetting.infoEl.createDiv({ cls: "checkbox-cycle-setting-label" });
             updateCycleView(this.plugin.settings.checkboxCycle);
 
             function updateCycleView(checkboxCycle: string) {
                 label.empty();
-                label.createEl("span", {
+                label.createSpan({
                     cls: "checkbox-cycle-setting-label-prefix",
                     text: "Cycle:",
                 });
@@ -180,7 +178,7 @@ class SettingTab extends PluginSettingTab {
                 const cycleItems = checkboxCycle.split(',');
                 for (const item of cycleItems) {
                     if (item.length === 0) {
-                        label.createEl("span", {
+                        label.createSpan({
                             cls: ["list-bullet", "checkbox-cycle-setting-bullet"],
                             text: "-",
                         });
