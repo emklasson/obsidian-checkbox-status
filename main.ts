@@ -1,11 +1,16 @@
 import CheckboxCount from "checkbox_count";
 import { App, Editor, Plugin, PluginManifest, PluginSettingTab, Setting } from "obsidian";
 
+interface CycleConfig {
+    name: string;
+    states: string;
+}
+
 interface PluginSettings {
     showInStatusBar: boolean;
     showProgressBar: boolean;
     countAnyCheckSymbol: boolean;
-    checkboxCycle: string;
+    cycles: CycleConfig[];
 }
 
 const DEFAULT_SETTINGS: PluginSettings = {
@@ -18,8 +23,8 @@ const DEFAULT_SETTINGS: PluginSettings = {
     // Count any non-empty checkbox as checked or only "x"/"X"?
     countAnyCheckSymbol: false,
 
-    // Items in checkbox cycle.
-    checkboxCycle: ", ,x,-"
+    // Checkbox cycles.
+    cycles: [],
 }
 
 export default class CheckboxStatusPlugin extends Plugin {
@@ -36,13 +41,26 @@ export default class CheckboxStatusPlugin extends Plugin {
 
         this.checkboxCount.onload();
 
-        this.addCommand({
-            id: 'cycle-checkbox-state',
-            name: 'Cycle checkbox state',
-            editorCallback: (editor) => this.cycleCheckboxState(editor)
-        });
+        this.registerCycleCommands();
 
         this.addSettingTab(new SettingTab(this.app, this));
+    }
+
+    private getCycle(index: number): string[] {
+        return this.settings.cycles[index].states.split(',')
+            .map(x => x ? `[${x}] ` : '');
+    }
+
+    private registerCycleCommands() {
+        for (let i = 0; i < this.settings.cycles.length; i++) {
+            const idx = i + 1;
+            const cycle = this.getCycle(i);
+            this.addCommand({
+                id: `cycle-checkbox-state-${idx}`,
+                name: `Cycle checkbox state ${idx}: ${cycle.join(' ')}`,
+                editorCallback: (editor) => this.cycleCheckboxState(editor, i),
+            });
+        }
     }
 
     async loadSettings() {
@@ -53,9 +71,8 @@ export default class CheckboxStatusPlugin extends Plugin {
         await this.saveData(this.settings);
     }
 
-    private cycleCheckboxState(editor: Editor) {
-        const cycle = this.settings.checkboxCycle.split(',')
-            .map(x => x ? `[${x}] ` : '');
+    private cycleCheckboxState(editor: Editor, cycleIndex: number) {
+        const cycle = this.getCycle(cycleIndex);
 
         const cursor = editor.getCursor();
         const line = editor.getLine(cursor.line);
@@ -134,46 +151,93 @@ class SettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName('Cycle checkbox state')
-            .setDesc("The cycle-checkbox-state command lets you cycle through custom checkbox states.")
+            .setDesc("The cycle-checkbox-state commands let you cycle through custom checkbox states.")
             .setHeading();
 
-        const desc = document.createDocumentFragment();
-        desc.createDiv({ text: 'Comma-separated checkbox states to cycle between.' });
-        desc.createDiv({ text: 'An empty item means a simple bullet.' });
-        desc.createDiv({ text: 'E.g. ", ,x,-" means bullet, unchecked, checked, canceled.' });
+        const cyclesContainer = containerEl.createDiv({ cls: "checkbox-cycles-container" });
+        const self = this;
 
-        const statesSetting = new Setting(containerEl)
-            .setName('States in checkbox cycle')
-            .setDesc(desc)
-            .addText(text => {
-                text.setPlaceholder(', ,x,-')
-                    .setValue(this.plugin.settings.checkboxCycle)
-                    .onChange(async (value) => {
-                        const items = value.split(',');
+        function renderCycles() {
+            cyclesContainer.empty();
+            for (let i = 0; i < self.plugin.settings.cycles.length; i++) {
+                renderCycle(i);
+            }
+        }
 
-                        if (items.some(item => item.length > 1)) {
-                            text.inputEl.addClass('mklasson-setting-error');
-                            return;
-                        }
+        renderCycles();
 
-                        text.inputEl.removeClass('mklasson-setting-error');
-                        this.plugin.settings.checkboxCycle = value;
-                        await this.plugin.saveSettings();
-                        updateCycleView(value);
+        new Setting(containerEl)
+            .setName('Add cycle')
+            .setDesc('Add a new checkbox cycle.')
+            .addButton(btn => btn
+                .setButtonText('Add')
+                .setCta()
+                .onClick(() => {
+                    self.plugin.settings.cycles.push({
+                        name: `Cycle ${self.plugin.settings.cycles.length + 1}`,
+                        states: ', ,x,-',
                     });
-            });
+                    self.plugin.saveSettings();
+                    renderCycles();
+                })
+            );
+
+        function renderCycle(index: number) {
+            const cycle = self.plugin.settings.cycles[index];
+            const idx = index + 1;
+            const isDefault = index === 0;
+
+            const cycleDiv = cyclesContainer.createDiv({ cls: "checkbox-cycle-entry" });
+
+            new Setting(cycleDiv)
+                .setName(`Cycle ${idx}`)
+                .setDesc('Custom name for this cycle (shown in command palette).')
+                .addText(text => {
+                    text.setPlaceholder(`Cycle ${idx}`)
+                        .setValue(cycle.name)
+                        .onChange(async (value) => {
+                            self.plugin.settings.cycles[index].name = value;
+                            await self.plugin.saveSettings();
+                        });
+                });
+
+            const desc = document.createDocumentFragment();
+            desc.createDiv({ text: 'Comma-separated checkbox states to cycle between.' });
+            desc.createDiv({ text: 'An empty item means a simple bullet.' });
+            desc.createDiv({ text: 'E.g. ", ,x,-" means bullet, unchecked, checked, canceled.' });
+
+            const statesSetting = new Setting(cycleDiv)
+                .setName('States in cycle')
+                .setDesc(desc)
+                .addText(text => {
+                    text.setPlaceholder(', ,x,-')
+                        .setValue(cycle.states)
+                        .onChange(async (value) => {
+                            const items = value.split(',');
+
+                            if (items.some(item => item.length > 1)) {
+                                text.inputEl.addClass('mklasson-setting-error');
+                                return;
+                            }
+
+                            text.inputEl.removeClass('mklasson-setting-error');
+                            self.plugin.settings.cycles[index].states = value;
+                            await self.plugin.saveSettings();
+                            updateCycleView(index);
+                        });
+                });
 
             const label = statesSetting.infoEl.createDiv({ cls: "checkbox-cycle-setting-label" });
-            updateCycleView(this.plugin.settings.checkboxCycle);
+            updateCycleView(index);
 
-            function updateCycleView(checkboxCycle: string) {
+            function updateCycleView(cycleIndex: number) {
                 label.empty();
                 label.createSpan({
                     cls: "checkbox-cycle-setting-label-prefix",
                     text: "Cycle:",
                 });
 
-                const cycleItems = checkboxCycle.split(',');
+                const cycleItems = self.plugin.settings.cycles[cycleIndex].states.split(',');
                 for (const item of cycleItems) {
                     if (item.length === 0) {
                         label.createSpan({
@@ -197,5 +261,19 @@ class SettingTab extends PluginSettingTab {
                     }
                 }
             }
+
+            if (!isDefault) {
+                new Setting(cycleDiv)
+                    .addButton(btn => btn
+                        .setButtonText('Delete')
+                        .setWarning()
+                        .onClick(async () => {
+                            self.plugin.settings.cycles.splice(index, 1);
+                            await self.plugin.saveSettings();
+                            renderCycles();
+                        })
+                    );
+            }
+        }
     }
 }
