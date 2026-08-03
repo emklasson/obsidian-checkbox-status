@@ -47,7 +47,7 @@ export default class CheckboxStatusPlugin extends Plugin {
             .map(x => x ? `[${x}] ` : (showBullets ? '• ' : ''));
     }
 
-    private registerCycleCommands() {
+    public registerCycleCommands() {
         // Remove all existing cycle commands (including orphaned ones).
         for (let i = 1; i <= this.maxCycleIndex; i++) {
             this.removeCommand(`cycle-checkbox-state-${i}`);
