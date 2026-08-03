@@ -207,6 +207,7 @@ class SettingTab extends PluginSettingTab {
                             text.inputEl.removeClass('mklasson-setting-error');
                             self.plugin.settings.cycles[index] = value;
                             await self.plugin.saveSettings();
+                            self.plugin.registerCycleCommands();
                             updateCycleView(index);
                         });
                 })
