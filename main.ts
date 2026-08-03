@@ -19,7 +19,7 @@ const DEFAULT_SETTINGS: PluginSettings = {
     countAnyCheckSymbol: false,
 
     // Checkbox cycles.
-    cycles: [],
+    cycles: [', ,x,-'],
 }
 
 export default class CheckboxStatusPlugin extends Plugin {
@@ -175,8 +175,6 @@ class SettingTab extends PluginSettingTab {
             );
 
         function renderCycle(index: number) {
-            const isDefault = index === 0;
-
             const cycleDiv = cyclesContainer.createDiv({ cls: "checkbox-cycle-entry" });
 
             const desc = document.createDocumentFragment();
@@ -240,18 +238,16 @@ class SettingTab extends PluginSettingTab {
                 }
             }
 
-            if (!isDefault) {
-                new Setting(cycleDiv)
-                    .addButton(btn => btn
-                        .setButtonText('Delete')
-                        .setWarning()
-                        .onClick(async () => {
-                            self.plugin.settings.cycles.splice(index, 1);
-                            await self.plugin.saveSettings();
-                            renderCycles();
-                        })
-                    );
-            }
+            new Setting(cycleDiv)
+                .addButton(btn => btn
+                    .setButtonText('Delete')
+                    .setWarning()
+                    .onClick(async () => {
+                        self.plugin.settings.cycles.splice(index, 1);
+                        await self.plugin.saveSettings();
+                        renderCycles();
+                    })
+                );
         }
     }
 }
