@@ -201,7 +201,17 @@ class SettingTab extends PluginSettingTab {
                             await self.plugin.saveSettings();
                             updateCycleView(index);
                         });
-                });
+                })
+                .addButton(btn => btn
+                    .setIcon('trash-2')
+                    .setTooltip('Delete cycle')
+                    .setWarning()
+                    .onClick(async () => {
+                        self.plugin.settings.cycles.splice(index, 1);
+                        await self.plugin.saveSettings();
+                        renderCycles();
+                    })
+                );
 
             const label = statesSetting.infoEl.createDiv({ cls: "checkbox-cycle-setting-label" });
             updateCycleView(index);
@@ -237,17 +247,6 @@ class SettingTab extends PluginSettingTab {
                     }
                 }
             }
-
-            new Setting(cycleDiv)
-                .addButton(btn => btn
-                    .setButtonText('Delete')
-                    .setWarning()
-                    .onClick(async () => {
-                        self.plugin.settings.cycles.splice(index, 1);
-                        await self.plugin.saveSettings();
-                        renderCycles();
-                    })
-                );
         }
     }
 }
