@@ -66,14 +66,3 @@
 .checkbox-cycle-setting-bullet {
 	margin-right: var(--size-2-3);
 }
-
-.checkbox-cycles-container {
-    margin-bottom: var(--size-4-2);
-}
-
-.checkbox-cycle-entry {
-    padding: var(--size-4-2);
-    margin-bottom: var(--size-4-2);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: var(--radius-s);
-}

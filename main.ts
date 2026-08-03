@@ -149,7 +149,7 @@ class SettingTab extends PluginSettingTab {
             .setDesc("The cycle-checkbox-state commands let you cycle through custom checkbox states.")
             .setHeading();
 
-        const cyclesContainer = containerEl.createDiv({ cls: "checkbox-cycles-container" });
+        const cyclesContainer = containerEl.createDiv();
         const self = this;
 
         function renderCycles() {
@@ -175,7 +175,7 @@ class SettingTab extends PluginSettingTab {
             );
 
         function renderCycle(index: number) {
-            const cycleDiv = cyclesContainer.createDiv({ cls: "checkbox-cycle-entry" });
+            const cycleDiv = cyclesContainer.createDiv();
 
             const desc = document.createDocumentFragment();
             desc.createDiv({ text: 'Comma-separated checkbox states to cycle between.' });
