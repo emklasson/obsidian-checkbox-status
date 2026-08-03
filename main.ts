@@ -1,16 +1,11 @@
 import CheckboxCount from "checkbox_count";
 import { App, Editor, Plugin, PluginManifest, PluginSettingTab, Setting } from "obsidian";
 
-interface CycleConfig {
-    name: string;
-    states: string;
-}
-
 interface PluginSettings {
     showInStatusBar: boolean;
     showProgressBar: boolean;
     countAnyCheckSymbol: boolean;
-    cycles: CycleConfig[];
+    cycles: string[];
 }
 
 const DEFAULT_SETTINGS: PluginSettings = {
@@ -47,7 +42,7 @@ export default class CheckboxStatusPlugin extends Plugin {
     }
 
     private getCycle(index: number): string[] {
-        return this.settings.cycles[index].states.split(',')
+        return this.settings.cycles[index].split(',')
             .map(x => x ? `[${x}] ` : '');
     }
 
@@ -173,33 +168,16 @@ class SettingTab extends PluginSettingTab {
                 .setButtonText('Add')
                 .setCta()
                 .onClick(() => {
-                    self.plugin.settings.cycles.push({
-                        name: `Cycle ${self.plugin.settings.cycles.length + 1}`,
-                        states: ', ,x,-',
-                    });
+                    self.plugin.settings.cycles.push(', ,x,-');
                     self.plugin.saveSettings();
                     renderCycles();
                 })
             );
 
         function renderCycle(index: number) {
-            const cycle = self.plugin.settings.cycles[index];
-            const idx = index + 1;
             const isDefault = index === 0;
 
             const cycleDiv = cyclesContainer.createDiv({ cls: "checkbox-cycle-entry" });
-
-            new Setting(cycleDiv)
-                .setName(`Cycle ${idx}`)
-                .setDesc('Custom name for this cycle (shown in command palette).')
-                .addText(text => {
-                    text.setPlaceholder(`Cycle ${idx}`)
-                        .setValue(cycle.name)
-                        .onChange(async (value) => {
-                            self.plugin.settings.cycles[index].name = value;
-                            await self.plugin.saveSettings();
-                        });
-                });
 
             const desc = document.createDocumentFragment();
             desc.createDiv({ text: 'Comma-separated checkbox states to cycle between.' });
@@ -211,7 +189,7 @@ class SettingTab extends PluginSettingTab {
                 .setDesc(desc)
                 .addText(text => {
                     text.setPlaceholder(', ,x,-')
-                        .setValue(cycle.states)
+                        .setValue(self.plugin.settings.cycles[index])
                         .onChange(async (value) => {
                             const items = value.split(',');
 
@@ -221,7 +199,7 @@ class SettingTab extends PluginSettingTab {
                             }
 
                             text.inputEl.removeClass('mklasson-setting-error');
-                            self.plugin.settings.cycles[index].states = value;
+                            self.plugin.settings.cycles[index] = value;
                             await self.plugin.saveSettings();
                             updateCycleView(index);
                         });
@@ -237,7 +215,7 @@ class SettingTab extends PluginSettingTab {
                     text: "Cycle:",
                 });
 
-                const cycleItems = self.plugin.settings.cycles[cycleIndex].states.split(',');
+                const cycleItems = self.plugin.settings.cycles[cycleIndex].split(',');
                 for (const item of cycleItems) {
                     if (item.length === 0) {
                         label.createSpan({
