@@ -42,9 +42,9 @@ export default class CheckboxStatusPlugin extends Plugin {
         this.addSettingTab(new SettingTab(this.app, this));
     }
 
-    private getCycle(index: number): string[] {
+    private getCycle(index: number, showBullets: boolean = false): string[] {
         return this.settings.cycles[index].split(',')
-            .map(x => x ? `[${x}] ` : '');
+            .map(x => x ? `[${x}] ` : (showBullets ? '• ' : ''));
     }
 
     private registerCycleCommands() {
@@ -55,7 +55,7 @@ export default class CheckboxStatusPlugin extends Plugin {
         // Re-register commands for current cycles.
         for (let i = 0; i < this.settings.cycles.length; i++) {
             const idx = i + 1;
-            const cycle = this.getCycle(i);
+            const cycle = this.getCycle(i, true);
             this.addCommand({
                 id: `cycle-checkbox-state-${idx}`,
                 name: `Cycle checkbox state ${idx}: ${cycle.join(' ')}`,
