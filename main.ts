@@ -138,11 +138,9 @@ class SettingTab extends PluginSettingTab {
             .setHeading();
 
         const desc = document.createDocumentFragment();
-        desc.createSpan({ text: 'Comma-separated checkbox states to cycle between.' });
-        desc.createEl('br');
-        desc.createSpan({ text: 'An empty item means a simple bullet.' });
-        desc.createEl('br');
-        desc.createSpan({ text: 'E.g. ", ,x,-" means bullet, unchecked, checked, canceled.' });
+        desc.createDiv({ text: 'Comma-separated checkbox states to cycle between.' });
+        desc.createDiv({ text: 'An empty item means a simple bullet.' });
+        desc.createDiv({ text: 'E.g. ", ,x,-" means bullet, unchecked, checked, canceled.' });
 
         const statesSetting = new Setting(containerEl)
             .setName('States in checkbox cycle')
