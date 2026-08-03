@@ -25,6 +25,7 @@ const DEFAULT_SETTINGS: PluginSettings = {
 export default class CheckboxStatusPlugin extends Plugin {
     public settings!: PluginSettings;
     public checkboxCount: CheckboxCount;
+    private maxCycleIndex = 0;
 
     constructor(app: App, manifest: PluginManifest) {
         super(app, manifest);
@@ -47,6 +48,11 @@ export default class CheckboxStatusPlugin extends Plugin {
     }
 
     private registerCycleCommands() {
+        // Remove all existing cycle commands (including orphaned ones).
+        for (let i = 1; i <= this.maxCycleIndex; i++) {
+            this.removeCommand(`cycle-checkbox-state-${i}`);
+        }
+        // Re-register commands for current cycles.
         for (let i = 0; i < this.settings.cycles.length; i++) {
             const idx = i + 1;
             const cycle = this.getCycle(i);
@@ -56,6 +62,7 @@ export default class CheckboxStatusPlugin extends Plugin {
                 editorCallback: (editor) => this.cycleCheckboxState(editor, i),
             });
         }
+        this.maxCycleIndex = this.settings.cycles.length;
     }
 
     async loadSettings() {
@@ -170,6 +177,7 @@ class SettingTab extends PluginSettingTab {
                 .onClick(() => {
                     self.plugin.settings.cycles.push(', ,x,-');
                     self.plugin.saveSettings();
+                    self.plugin.registerCycleCommands();
                     renderCycles();
                 })
             );
@@ -209,6 +217,7 @@ class SettingTab extends PluginSettingTab {
                     .onClick(async () => {
                         self.plugin.settings.cycles.splice(index, 1);
                         await self.plugin.saveSettings();
+                        self.plugin.registerCycleCommands();
                         renderCycles();
                     })
                 );
