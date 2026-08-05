@@ -76,44 +76,71 @@ export default class CheckboxStatusPlugin extends Plugin {
     private cycleCheckboxState(editor: Editor, cycleIndex: number) {
         const cycle = this.getCycle(cycleIndex);
 
-        const from = editor.getCursor('from');
-        const to = editor.getCursor('to');
-        const startLine = Math.min(from.line, to.line);
-        const endLine = Math.max(from.line, to.line);
+        const selections = editor.listSelections();
+        const sharedState = selections.length === 1;
 
+        // Preprocess: collect all lines to process and their cursor positions.
         interface LineInfo {
             line: number;
             startCh: number;
             endCh: number;
+            checkbox: string;
+            cursorCh: number;
         }
         const lines: LineInfo[] = [];
-        let replacement = cycle[0];
-        let found = false;
+        const seenLines = new Set<number>();
 
-        for (let i = startLine; i <= endLine; i++) {
-            const line = editor.getLine(i);
-            const match = line.match(/^(\s*)([-*+]) (\[.?\] )?/);
-            if (!match) continue;
+        for (const sel of selections) {
+            const fromLine = Math.min(sel.anchor.line, sel.head.line);
+            const toLine = Math.max(sel.anchor.line, sel.head.line);
+            for (let i = fromLine; i <= toLine; i++) {
+                if (seenLines.has(i)) continue;
+                seenLines.add(i);
 
-            const [, indent, bullet, checkbox] = match;
-            const startCh = indent.length + bullet.length + 1;
-            const endCh = startCh + (checkbox?.length || 0);
+                const line = editor.getLine(i);
+                const match = line.match(/^(\s*)([-*+]) (\[.?\] )?/);
+                if (!match) continue;
 
-            lines.push({ line: i, startCh, endCh });
-
-            if (!found) {
-                const index = cycle.indexOf(checkbox ?? '');
-                if (index != -1) {
-                    replacement = cycle[(index + 1) % cycle.length];
-                    found = true;
-                }
+                const [, indent, bullet, checkbox] = match;
+                lines.push({
+                    line: i,
+                    startCh: indent.length + bullet.length + 1,
+                    endCh: indent.length + bullet.length + 1 + (checkbox?.length || 0),
+                    checkbox: checkbox ?? '',
+                    cursorCh: sel.head.line === i ? sel.head.ch : -1,
+                });
             }
         }
 
         if (lines.length === 0) return;
 
+        // Determine shared replacement from the first line.
+        let sharedReplacement = cycle[0];
+        if (sharedState && lines.length > 0) {
+            const index = cycle.indexOf(lines[0].checkbox);
+            if (index != -1) {
+                sharedReplacement = cycle[(index + 1) % cycle.length];
+            }
+        }
+
+        // Apply replacements and collect new cursor positions.
+        const newSelections: Array<{ anchor: { line: number; ch: number }; head: { line: number; ch: number } }> = [];
+
         for (const info of lines) {
+            const replacement = sharedState
+                ? sharedReplacement
+                : cycle[(cycle.indexOf(info.checkbox) + 1) % cycle.length] ?? cycle[0];
+
             editor.replaceRange(replacement, { line: info.line, ch: info.startCh }, { line: info.line, ch: info.endCh });
+
+            if (info.cursorCh >= 0) {
+                const newCh = info.cursorCh + (replacement.length - (info.endCh - info.startCh));
+                newSelections.push({ anchor: { line: info.line, ch: newCh }, head: { line: info.line, ch: newCh } });
+            }
+        }
+
+        if (newSelections.length > 0) {
+            editor.setSelections(newSelections);
         }
     }
 }
