@@ -97,14 +97,14 @@ export default class CheckboxStatusPlugin extends Plugin {
                 seenLines.add(i);
 
                 const line = editor.getLine(i);
-                const match = line.match(/^(\s*)([-*+]) (\[.?\] )?/);
+                const match = line.match(/^(\s*[-*+] )(\[.?\] )?/);
                 if (!match) continue;
 
-                const [, indent, bullet, checkbox] = match;
+                const [, prefix, checkbox] = match;
                 lines.push({
                     line: i,
-                    startCh: indent.length + bullet.length + 1,
-                    endCh: indent.length + bullet.length + 1 + (checkbox?.length || 0),
+                    startCh: prefix.length,
+                    endCh: prefix.length + (checkbox?.length || 0),
                     checkbox: checkbox ?? '',
                 });
             }
@@ -114,7 +114,7 @@ export default class CheckboxStatusPlugin extends Plugin {
 
         // Determine shared replacement from the first line.
         let sharedReplacement = cycle[0];
-        if (sharedState && lines.length > 0) {
+        if (sharedState) {
             const index = cycle.indexOf(lines[0].checkbox);
             if (index != -1) {
                 sharedReplacement = cycle[(index + 1) % cycle.length];
@@ -127,7 +127,7 @@ export default class CheckboxStatusPlugin extends Plugin {
         for (const info of lines) {
             const replacement = sharedState
                 ? sharedReplacement
-                : cycle[(cycle.indexOf(info.checkbox) + 1) % cycle.length] ?? cycle[0];
+                : cycle[(cycle.indexOf(info.checkbox) + 1) % cycle.length];
 
             editor.replaceRange(replacement, { line: info.line, ch: info.startCh }, { line: info.line, ch: info.endCh });
             lineAdjust.set(info.line, { startCh: info.startCh, delta: replacement.length - (info.endCh - info.startCh) });
