@@ -76,28 +76,44 @@ export default class CheckboxStatusPlugin extends Plugin {
     private cycleCheckboxState(editor: Editor, cycleIndex: number) {
         const cycle = this.getCycle(cycleIndex);
 
-        const cursor = editor.getCursor();
-        const line = editor.getLine(cursor.line);
-        const match = line.match(/^(\s*)([-*+]) (\[.?\] )?/);
-        if (!match) {
-            return;
+        const from = editor.getCursor('from');
+        const to = editor.getCursor('to');
+        const startLine = Math.min(from.line, to.line);
+        const endLine = Math.max(from.line, to.line);
+
+        interface LineInfo {
+            line: number;
+            startCh: number;
+            endCh: number;
+        }
+        const lines: LineInfo[] = [];
+        let replacement = cycle[0];
+        let found = false;
+
+        for (let i = startLine; i <= endLine; i++) {
+            const line = editor.getLine(i);
+            const match = line.match(/^(\s*)([-*+]) (\[.?\] )?/);
+            if (!match) continue;
+
+            const [, indent, bullet, checkbox] = match;
+            const startCh = indent.length + bullet.length + 1;
+            const endCh = startCh + (checkbox?.length || 0);
+
+            lines.push({ line: i, startCh, endCh });
+
+            if (!found) {
+                const index = cycle.indexOf(checkbox ?? '');
+                if (index != -1) {
+                    replacement = cycle[(index + 1) % cycle.length];
+                    found = true;
+                }
+            }
         }
 
-        const [, indent, bullet, checkbox] = match;
-        const startCh = indent.length + bullet.length + 1;
-        const endCh = startCh + (checkbox?.length || 0);
+        if (lines.length === 0) return;
 
-        const index = cycle.indexOf(checkbox ?? '');
-        if (index == -1) {
-            return;
-        }
-
-        const replacement = cycle[(index + 1) % cycle.length];
-        editor.replaceRange(replacement, { line: cursor.line, ch: startCh }, { line: cursor.line, ch: endCh });
-
-        // Fix cursor position if we added a new checkbox at the cursor.
-        if (!checkbox && cursor.ch === startCh) {
-            editor.setCursor({ line: cursor.line, ch: cursor.ch + replacement.length });
+        for (const info of lines) {
+            editor.replaceRange(replacement, { line: info.line, ch: info.startCh }, { line: info.line, ch: info.endCh });
         }
     }
 }
