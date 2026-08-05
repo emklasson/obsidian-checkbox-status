@@ -79,13 +79,12 @@ export default class CheckboxStatusPlugin extends Plugin {
         const selections = editor.listSelections();
         const sharedState = selections.length === 1;
 
-        // Preprocess: collect all lines to process and their cursor positions.
+        // Preprocess: collect all lines to process.
         interface LineInfo {
             line: number;
             startCh: number;
             endCh: number;
             checkbox: string;
-            cursorCh: number;
         }
         const lines: LineInfo[] = [];
         const seenLines = new Set<number>();
@@ -107,7 +106,6 @@ export default class CheckboxStatusPlugin extends Plugin {
                     startCh: indent.length + bullet.length + 1,
                     endCh: indent.length + bullet.length + 1 + (checkbox?.length || 0),
                     checkbox: checkbox ?? '',
-                    cursorCh: sel.head.line === i ? sel.head.ch : -1,
                 });
             }
         }
@@ -123,8 +121,8 @@ export default class CheckboxStatusPlugin extends Plugin {
             }
         }
 
-        // Apply replacements and collect new cursor positions.
-        const newSelections: Array<{ anchor: { line: number; ch: number }; head: { line: number; ch: number } }> = [];
+        // Apply replacements, tracking per-line replacement range.
+        const lineAdjust = new Map<number, { startCh: number; delta: number }>();
 
         for (const info of lines) {
             const replacement = sharedState
@@ -132,16 +130,22 @@ export default class CheckboxStatusPlugin extends Plugin {
                 : cycle[(cycle.indexOf(info.checkbox) + 1) % cycle.length] ?? cycle[0];
 
             editor.replaceRange(replacement, { line: info.line, ch: info.startCh }, { line: info.line, ch: info.endCh });
-
-            if (info.cursorCh >= 0) {
-                const newCh = info.cursorCh + (replacement.length - (info.endCh - info.startCh));
-                newSelections.push({ anchor: { line: info.line, ch: newCh }, head: { line: info.line, ch: newCh } });
-            }
+            lineAdjust.set(info.line, { startCh: info.startCh, delta: replacement.length - (info.endCh - info.startCh) });
         }
 
-        if (newSelections.length > 0) {
-            editor.setSelections(newSelections);
-        }
+        // Restore selections, adjusted for text length changes.
+        const adjustCh = (line: number, ch: number) => {
+            const adj = lineAdjust.get(line);
+            if (!adj) return ch;
+            if (ch < adj.startCh) return ch;
+            return Math.max(adj.startCh, ch + adj.delta);
+        };
+
+        const newSelections = selections.map(sel => ({
+            anchor: { line: sel.anchor.line, ch: adjustCh(sel.anchor.line, sel.anchor.ch) },
+            head: { line: sel.head.line, ch: adjustCh(sel.head.line, sel.head.ch) },
+        }));
+        editor.setSelections(newSelections);
     }
 }
 
