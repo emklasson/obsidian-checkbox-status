@@ -75,34 +75,23 @@ export default class CheckboxStatusPlugin extends Plugin {
 
     private cycleCheckboxState(editor: Editor, cycleIndex: number) {
         const cycle = this.getCycle(cycleIndex);
-
         const selections = editor.listSelections();
-        const sharedState = selections.length === 1;
 
-        // Preprocess: collect all lines to process.
-        interface LineInfo {
-            line: number;
-            startCh: number;
-            endCh: number;
-            checkbox: string;
-        }
-        const lines: LineInfo[] = [];
-        const seenLines = new Set<number>();
-
+        // Collect unique lines with bullets/checkboxes in the selections.
+        const lines: { line: number; startCh: number; endCh: number; checkbox: string }[] = [];
+        const seen = new Set<number>();
         for (const sel of selections) {
             const fromLine = Math.min(sel.anchor.line, sel.head.line);
             const toLine = Math.max(sel.anchor.line, sel.head.line);
-            for (let i = fromLine; i <= toLine; i++) {
-                if (seenLines.has(i)) continue;
-                seenLines.add(i);
-
-                const line = editor.getLine(i);
-                const match = line.match(/^(\s*[-*+] )(\[.?\] )?/);
+            for (let line = fromLine; line <= toLine; line++) {
+                if (seen.has(line)) continue;
+                seen.add(line);
+                const match = editor.getLine(line).match(/^(\s*[-*+] )(\[.?\] )?/);
                 if (!match) continue;
 
                 const [, prefix, checkbox] = match;
                 lines.push({
-                    line: i,
+                    line,
                     startCh: prefix.length,
                     endCh: prefix.length + (checkbox?.length || 0),
                     checkbox: checkbox ?? '',
@@ -112,40 +101,33 @@ export default class CheckboxStatusPlugin extends Plugin {
 
         if (lines.length === 0) return;
 
-        // Determine shared replacement from the first line.
-        let sharedReplacement = cycle[0];
-        if (sharedState) {
-            const index = cycle.indexOf(lines[0].checkbox);
-            if (index != -1) {
-                sharedReplacement = cycle[(index + 1) % cycle.length];
-            }
-        }
+        // Next state for an item. An unknown item falls back to the first state.
+        const nextState = (checkbox: string) => {
+            const index = cycle.indexOf(checkbox);
+            return cycle[(index + 1) % cycle.length];
+        };
 
-        // Apply replacements, tracking per-line replacement range.
-        const lineAdjust = new Map<number, { startCh: number; delta: number }>();
+        const shared = selections.length === 1;
+        const sharedReplacement = shared ? nextState(lines[0].checkbox) : cycle[0];
 
-        for (const info of lines) {
-            const replacement = sharedState
-                ? sharedReplacement
-                : cycle[(cycle.indexOf(info.checkbox) + 1) % cycle.length];
-
-            editor.replaceRange(replacement, { line: info.line, ch: info.startCh }, { line: info.line, ch: info.endCh });
-            lineAdjust.set(info.line, { startCh: info.startCh, delta: replacement.length - (info.endCh - info.startCh) });
+        // Apply replacements, tracking length changes per line.
+        const adjust = new Map<number, { startCh: number; delta: number }>();
+        for (const { line, startCh, endCh, checkbox } of lines) {
+            const replacement = shared ? sharedReplacement : nextState(checkbox);
+            editor.replaceRange(replacement, { line, ch: startCh }, { line, ch: endCh });
+            adjust.set(line, { startCh, delta: replacement.length - (endCh - startCh) });
         }
 
         // Restore selections, adjusted for text length changes.
         const adjustCh = (line: number, ch: number) => {
-            const adj = lineAdjust.get(line);
-            if (!adj) return ch;
-            if (ch < adj.startCh) return ch;
+            const adj = adjust.get(line);
+            if (!adj || ch < adj.startCh) return ch;
             return Math.max(adj.startCh, ch + adj.delta);
         };
-
-        const newSelections = selections.map(sel => ({
+        editor.setSelections(selections.map(sel => ({
             anchor: { line: sel.anchor.line, ch: adjustCh(sel.anchor.line, sel.anchor.ch) },
             head: { line: sel.head.line, ch: adjustCh(sel.head.line, sel.head.ch) },
-        }));
-        editor.setSelections(newSelections);
+        })));
     }
 }
 
