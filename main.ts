@@ -8,6 +8,9 @@ interface PluginSettings {
     cycles: string[];
 }
 
+const BULLET_PLACEHOLDER = '[';
+const DEFAULT_CYCLE = `${BULLET_PLACEHOLDER} x-`;
+
 const DEFAULT_SETTINGS: PluginSettings = {
     // Show a status bar item with the count of checked/total checkboxes?
     showInStatusBar: true,
@@ -18,8 +21,9 @@ const DEFAULT_SETTINGS: PluginSettings = {
     // Count any non-empty checkbox as checked or only "x"/"X"?
     countAnyCheckSymbol: false,
 
-    // Checkbox cycles.
-    cycles: [', ,x,-'],
+    // Checkbox cycles. Each character is one state, or BULLET_PLACEHOLDER for a
+    // bullet.
+    cycles: [DEFAULT_CYCLE],
 }
 
 export default class CheckboxStatusPlugin extends Plugin {
@@ -43,8 +47,8 @@ export default class CheckboxStatusPlugin extends Plugin {
     }
 
     private getCycle(index: number, showBullets: boolean = false): string[] {
-        return this.settings.cycles[index].split(',')
-            .map(x => x ? `[${x}] ` : (showBullets ? '• ' : ''));
+        return this.settings.cycles[index].split('')
+            .map(x => x === BULLET_PLACEHOLDER ? (showBullets ? '• ' : '') : `[${x}] `);
     }
 
     public registerCycleCommands() {
@@ -204,7 +208,7 @@ class SettingTab extends PluginSettingTab {
                 .setButtonText('Add')
                 .setCta()
                 .onClick(() => {
-                    self.plugin.settings.cycles.push(', ,x,-');
+                    self.plugin.settings.cycles.push(DEFAULT_CYCLE);
                     self.plugin.saveSettings();
                     self.plugin.registerCycleCommands();
                     renderCycles();
@@ -215,20 +219,18 @@ class SettingTab extends PluginSettingTab {
             const cycleDiv = cyclesContainer.createDiv();
 
             const desc = document.createDocumentFragment();
-            desc.createDiv({ text: 'Comma-separated checkbox states to cycle between.' });
-            desc.createDiv({ text: 'An empty item means a simple bullet.' });
-            desc.createDiv({ text: 'E.g. ", ,x,-" means bullet, unchecked, checked, canceled.' });
+            desc.createDiv({ text: 'Each character is one checkbox state in the cycle.' });
+            desc.createDiv({ text: `Use ${BULLET_PLACEHOLDER} as a stand-in for a simple bullet (no checkbox).` });
+            desc.createDiv({ text: `E.g. "${BULLET_PLACEHOLDER} x-" means bullet, unchecked, checked, canceled.` });
 
             const statesSetting = new Setting(cycleDiv)
                 .setName('States in cycle')
                 .setDesc(desc)
                 .addText(text => {
-                    text.setPlaceholder(', ,x,-')
+                    text.setPlaceholder(DEFAULT_CYCLE)
                         .setValue(self.plugin.settings.cycles[index])
                         .onChange(async (value) => {
-                            const items = value.split(',');
-
-                            if (items.some(item => item.length > 1)) {
+                            if (value.length === 0) {
                                 text.inputEl.addClass('mklasson-setting-error');
                                 return;
                             }
@@ -262,9 +264,9 @@ class SettingTab extends PluginSettingTab {
                     text: "Cycle:",
                 });
 
-                const cycleItems = self.plugin.settings.cycles[cycleIndex].split(',');
+                const cycleItems = self.plugin.settings.cycles[cycleIndex].split('');
                 for (const item of cycleItems) {
-                    if (item.length === 0) {
+                    if (item === BULLET_PLACEHOLDER) {
                         label.createSpan({
                             cls: ["list-bullet", "checkbox-cycle-setting-bullet"],
                             text: "-",
